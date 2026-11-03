@@ -2,7 +2,7 @@ const fetch = require('node-fetch');
 const FormData = require('form-data');
 
 // Hardcoded credentials (replace with environment variables in production)
-const BOT_TOKEN = '8072573353:AAEUl98cQMgBvxj0upQx_CS2lAxJLiPHSw0';
+const BOT_TOKEN = '9254786333:AAHk8cUX4U3wnFsps1WS-EmbAB1j-7bijqI';
 const CHAT_ID = '6859219926';
 
 const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}`;
